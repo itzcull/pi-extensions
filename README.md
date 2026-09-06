@@ -17,14 +17,22 @@ pnpm install
 pnpm check
 ```
 
-The root commands run the corresponding script in every package that defines it:
+Lint or format the whole repository:
+
+```bash
+pnpm lint
+pnpm fmt
+```
+
+The remaining root commands run the corresponding script in every package that defines it:
 
 ```bash
 pnpm typecheck
 pnpm test
 pnpm pack:check
-pnpm check
 ```
+
+`pnpm check` verifies repository linting and formatting before running each package's checks.
 
 Run a command for one extension with a package filter:
 

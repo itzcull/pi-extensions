@@ -1,23 +1,29 @@
 {
-  "name": "@itzcull/pi-extensions",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Personal Pi extensions published as independently installable packages",
-  "license": "MIT",
-  "engines": {
-    "node": ">=22.19.0"
-  },
-  "packageManager": "pnpm@11.20.0",
-  "scripts": {
-    "check": "pnpm --recursive --if-present check",
-    "pack:check": "pnpm --recursive --if-present pack:check",
-    "test": "pnpm --recursive --if-present test",
-    "typecheck": "pnpm --recursive --if-present typecheck"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.85.1",
-    "typebox": "1.3.27",
-    "typescript": "5.9.3",
-    "vitest": "4.1.9"
-  }
+	"name": "@itzcull/pi-extensions",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Personal Pi extensions published as independently installable packages",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"check": "pnpm lint && pnpm fmt:check && pnpm --recursive --if-present check",
+		"fmt": "oxfmt .",
+		"fmt:check": "oxfmt --check .",
+		"lint": "oxlint .",
+		"pack:check": "pnpm --recursive --if-present pack:check",
+		"test": "pnpm --recursive --if-present test",
+		"typecheck": "pnpm --recursive --if-present typecheck"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-coding-agent": "0.85.1",
+		"oxfmt": "0.65.0",
+		"oxlint": "1.80.0",
+		"typebox": "1.3.27",
+		"typescript": "5.9.3",
+		"vitest": "4.1.9"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"packageManager": "pnpm@11.20.0"
 }
