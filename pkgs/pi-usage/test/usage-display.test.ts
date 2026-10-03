@@ -76,7 +76,8 @@ describe("subscription quota display", () => {
 	});
 
 	it("honors rate-limit cooldowns even when switching away and back", async () => {
-		let now = 0;
+		const start = Date.parse("2026-09-06T14:00:00.000Z");
+		let now = start;
 		let limited = true;
 		const limitedProvider: UsageProvider = {
 			...provider,
@@ -93,14 +94,14 @@ describe("subscription quota display", () => {
 		);
 		await monitor.select("example", async () => "test");
 		limited = false;
-		now = 60_000;
+		now = start + 60_000;
 		await monitor.select("other", async () => "test");
 		await monitor.select("example", async () => "test");
 		expect(statuses.at(-1)).toContain("unavailable");
 		expect(monitor.details()).toContain("rate limited");
-		now = 600_000;
+		now = start + 600_000;
 		await monitor.select("example", async () => "test");
-		expect(statuses.at(-1)).toBe("Example: 5h 74% · 7d 20% left");
+		expect(statuses.at(-1)).toBe("Example: 5h (resets in 0d 3h) 74% left · 7d 20% left");
 	});
 
 	it("clears the footer on shutdown and ignores pending quota responses", async () => {
@@ -159,21 +160,78 @@ describe("subscription quota display", () => {
 		expect(monitor.details()).toBe("Subscription quota is not supported for this provider.");
 	});
 
-	it("keeps remaining percentages in the footer and reveals reset times in details", async () => {
+	it.each([
+		{ resetsAt: "2026-09-08T17:59:00.000Z", countdown: "2d 3h" },
+		{ resetsAt: "2026-09-06T18:00:00.000Z", countdown: "0d 4h" },
+		{ resetsAt: "2026-09-06T14:30:00.000Z", countdown: "0d 0h" },
+		{ resetsAt: "2026-09-06T14:00:00.000Z", countdown: "0d 0h" },
+		{ resetsAt: "2026-09-05T14:00:00.000Z", countdown: "0d 0h" },
+	])(
+		"shows time until reset as days and whole hours ($countdown)",
+		async ({ resetsAt, countdown }) => {
+			const statuses: (string | undefined)[] = [];
+			const monitor = new UsageMonitor(
+				[
+					{
+						...provider,
+						fetchUsage: async () => ({
+							windows: [{ label: "5h", remainingPercent: 74, resetsAt }],
+						}),
+					},
+				],
+				(text) => statuses.push(text),
+				() => Date.parse("2026-09-06T14:00:00.000Z"),
+			);
+			await monitor.select("example", async () => "test");
+			expect(statuses.at(-1)).toBe(`Example: 5h (resets in ${countdown}) 74% left`);
+		},
+	);
+
+	it.each([
+		{
+			metadata: { plan: "pro", email: "person@example.com" },
+			prefix: "Example (Pro, person@example.com)",
+		},
+		{ metadata: { plan: "max 20x" }, prefix: "Example (Max 20x)" },
+		{ metadata: { email: "person@example.com" }, prefix: "Example (person@example.com)" },
+		{ metadata: {}, prefix: "Example" },
+	])(
+		"prefixes quota with the provider and available account information ($prefix)",
+		async ({ metadata, prefix }) => {
+			const statuses: (string | undefined)[] = [];
+			const monitor = new UsageMonitor(
+				[
+					{
+						...provider,
+						fetchUsage: async () => ({
+							...metadata,
+							windows: [{ label: "5h", remainingPercent: 74, resetsAt: null }],
+						}),
+					},
+				],
+				(text) => statuses.push(text),
+			);
+			await monitor.select("example", async () => "test");
+			expect(statuses.at(-1)).toBe(`${prefix}: 5h 74% left`);
+			expect(monitor.details()).toContain(`${prefix} subscription quota`);
+		},
+	);
+
+	it("shows remaining quota and reset countdowns while retaining exact reset times in details", async () => {
 		const statuses: (string | undefined)[] = [];
 		const monitor = new UsageMonitor(
 			[provider],
 			(text: string | undefined) => statuses.push(text),
-			() => 0,
+			() => Date.parse("2026-09-06T14:00:00.000Z"),
 		);
 		await monitor.select("example", async () => "test-token");
-		expect(statuses.at(-1)).toBe("Example: 5h 74% · 7d 20% left");
+		expect(statuses.at(-1)).toBe("Example: 5h (resets in 0d 4h) 74% left · 7d 20% left");
 		expect(monitor.details()).toBe(
 			[
 				"Example subscription quota",
 				"5h: 74% remaining — resets 2026-09-06T18:00:00.000Z",
 				"7d: 20% remaining — reset time unavailable",
-				"Updated: 1970-01-01T00:00:00.000Z",
+				"Updated: 2026-09-06T14:00:00.000Z",
 			].join("\n"),
 		);
 	});

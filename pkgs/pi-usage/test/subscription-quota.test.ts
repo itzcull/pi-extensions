@@ -10,6 +10,29 @@ const codexToken = `header.${btoa(
 )}.signature`;
 
 describe("Codex subscription quota", () => {
+	it("includes the plan and email reported by the usage endpoint", async () => {
+		const provider = createCodexProvider({
+			get: async () => ({ plan_type: "pro", email: "person@example.com", rate_limit: null }),
+		});
+		expect(await provider.fetchUsage(codexToken, new AbortController().signal)).toMatchObject({
+			plan: "pro",
+			email: "person@example.com",
+		});
+	});
+
+	it.each([null, 42, ""])(
+		"keeps quota when optional account metadata is unavailable (%s)",
+		async (value) => {
+			const provider = createCodexProvider({
+				get: async () => ({ plan_type: value, email: value, rate_limit: null }),
+			});
+			const usage = await provider.fetchUsage(codexToken, new AbortController().signal);
+			expect(usage.windows).toEqual([]);
+			expect(usage.plan).toBeUndefined();
+			expect(usage.email).toBeUndefined();
+		},
+	);
+
 	it.each([undefined, "many", -1, Number.NaN, Number.POSITIVE_INFINITY])(
 		"rejects invalid quota values (%s) rather than displaying a percentage",
 		async (used_percent) => {
@@ -77,6 +100,51 @@ describe("Codex subscription quota", () => {
 });
 
 describe("Claude subscription quota", () => {
+	it.each([
+		{ organization_type: "claude_max", rate_limit_tier: "default_claude_max_20x", plan: "max 20x" },
+		{ organization_type: "claude_pro", rate_limit_tier: null, plan: "pro" },
+	])(
+		"includes the active OAuth account's email and plan ($plan)",
+		async ({ plan, ...organization }) => {
+			const requests: { url: string; headers: Record<string, string> }[] = [];
+			const provider = createClaudeProvider({
+				get: async (url, headers) => {
+					requests.push({ url, headers });
+					return url.endsWith("/profile")
+						? { account: { email: "person@example.com" }, organization }
+						: { five_hour: { utilization: 25 } };
+				},
+			});
+			expect(await provider.fetchUsage("test-token", new AbortController().signal)).toEqual({
+				windows: [{ label: "5h", remainingPercent: 75, resetsAt: null }],
+				plan,
+				email: "person@example.com",
+			});
+			expect(requests).toContainEqual({
+				url: "https://api.anthropic.com/api/oauth/profile",
+				headers: { Authorization: "Bearer test-token", "anthropic-beta": "oauth-2025-04-20" },
+			});
+		},
+	);
+
+	it.each(["unavailable", "malformed"])(
+		"keeps quota when profile metadata is %s",
+		async (profile) => {
+			const provider = createClaudeProvider({
+				get: async (url) => {
+					if (url.endsWith("/profile")) {
+						if (profile === "unavailable") throw new Error("Profile access denied");
+						return { account: { email: 42 }, organization: null };
+					}
+					return { five_hour: { utilization: 25 } };
+				},
+			});
+			expect(await provider.fetchUsage("test-token", new AbortController().signal)).toEqual({
+				windows: [{ label: "5h", remainingPercent: 75, resetsAt: null }],
+			});
+		},
+	);
+
 	it.each([undefined, "many", -1, Number.NaN, Number.POSITIVE_INFINITY])(
 		"rejects invalid quota values (%s) rather than displaying a percentage",
 		async (utilization) => {

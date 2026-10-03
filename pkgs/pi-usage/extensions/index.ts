@@ -4,7 +4,7 @@ import { createCodexProvider } from "../src/providers/codex.ts";
 import { UsageMonitor } from "../src/usage-monitor.ts";
 import { HttpUsageTransport } from "../src/usage-transport.ts";
 
-const STATUS_KEY = "pi-usage";
+const USAGE_KEY = "pi-usage";
 const POLL_INTERVAL_MS = 5 * 60_000;
 
 export default function usageExtension(pi: ExtensionAPI): void {
@@ -39,7 +39,13 @@ export default function usageExtension(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
 		stop();
 		if (ctx.mode !== "tui") return;
-		monitor = new UsageMonitor(providers, (text) => currentContext?.ui.setStatus(STATUS_KEY, text));
+		// Clear the inline status used by older versions without replacing Pi's footer.
+		ctx.ui.setStatus(USAGE_KEY, undefined);
+		monitor = new UsageMonitor(providers, (text) =>
+			currentContext?.ui.setWidget(USAGE_KEY, text === undefined ? undefined : [text], {
+				placement: "aboveEditor",
+			}),
+		);
 		void update(ctx);
 		timer = setInterval(() => {
 			if (currentContext) void update(currentContext, currentModel);

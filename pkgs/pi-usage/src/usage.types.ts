@@ -7,6 +7,8 @@ export type QuotaWindow = {
 export type SubscriptionUsage = {
 	windows: readonly QuotaWindow[];
 	limitReached?: boolean;
+	plan?: string;
+	email?: string;
 };
 
 export interface UsageProvider {

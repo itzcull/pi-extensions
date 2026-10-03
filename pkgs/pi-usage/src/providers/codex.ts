@@ -16,6 +16,8 @@ const WindowSchema = Type.Union([
 		),
 	}),
 ]);
+const PlanSchema = Type.Object({ plan_type: Type.String({ minLength: 1 }) });
+const EmailSchema = Type.Object({ email: Type.String({ minLength: 1 }) });
 const UsageSchema = Type.Object({
 	rate_limit: Type.Union([
 		Type.Null(),
@@ -76,6 +78,8 @@ export function createCodexProvider(transport: UsageTransport): UsageProvider {
 			return {
 				windows,
 				limitReached: data.rate_limit?.allowed === false || data.rate_limit?.limit_reached === true,
+				...(Value.Check(PlanSchema, data) ? { plan: data.plan_type } : {}),
+				...(Value.Check(EmailSchema, data) ? { email: data.email } : {}),
 			};
 		},
 	};

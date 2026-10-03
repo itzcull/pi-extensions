@@ -91,17 +91,27 @@ export class UsageMonitor {
 	}
 
 	private publish(provider: UsageProvider, usage: SubscriptionUsage): void {
+		const now = this.now();
+		const plan = usage.plan?.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+		const account = [plan, usage.email].filter(Boolean).join(", ");
+		const label = `${provider.label}${account ? ` (${account})` : ""}`;
+		const windows = usage.windows.map((window) => {
+			const remaining = `${Math.floor(window.remainingPercent)}% left`;
+			if (!window.resetsAt) return `${window.label} ${remaining}`;
+			const hours = Math.max(0, Math.floor((Date.parse(window.resetsAt) - now) / 3_600_000));
+			return `${window.label} (resets in ${Math.floor(hours / 24)}d ${hours % 24}h) ${remaining}`;
+		});
 		this.setStatus(
-			`${provider.label}: ${usage.windows.map((window) => `${window.label} ${Math.floor(window.remainingPercent)}%`).join(" · ")} left${usage.limitReached ? " (limit reached)" : ""}`,
+			`${label}: ${windows.join(" · ")}${usage.limitReached ? " (limit reached)" : ""}`,
 		);
 		this.detailText = [
-			`${provider.label} subscription quota`,
+			`${label} subscription quota`,
 			...(usage.limitReached ? ["Provider reports a subscription limit has been reached."] : []),
 			...usage.windows.map(
 				(window) =>
 					`${window.label}: ${Math.floor(window.remainingPercent)}% remaining — ${window.resetsAt ? `resets ${window.resetsAt}` : "reset time unavailable"}`,
 			),
-			`Updated: ${new Date(this.now()).toISOString()}`,
+			`Updated: ${new Date(now).toISOString()}`,
 		].join("\n");
 	}
 
