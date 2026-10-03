@@ -2,7 +2,7 @@
 
 Personal [Pi](https://pi.dev) extensions maintained as independently installable packages.
 
-This repository uses a pnpm workspace. Each directory under `packages/` is a separate npm package with its own version and Pi manifest. The first package will be `@itzcull/pi-gateway`.
+This repository uses a pnpm workspace. Each directory under `pkgs/` is a separate npm package with its own version and Pi manifest. The first package will be `@itzcull/pi-gateway`.
 
 ## Prerequisites
 
@@ -42,10 +42,10 @@ pnpm --filter @itzcull/pi-gateway check
 
 ## Package contract
 
-Every extension lives in `packages/<name>/` and is independently installable. A package owns its source, tests, documentation, runtime dependencies, and version.
+Every extension lives in `pkgs/<name>/` and is independently installable. A package owns its source, tests, documentation, runtime dependencies, and version.
 
 ```text
-packages/pi-gateway/
+pkgs/pi-gateway/
 ├── extensions/
 │   └── index.ts
 ├── test/
@@ -73,19 +73,19 @@ See the authoritative Pi documentation for [packages](https://pi.dev/docs/latest
 Temporarily load an extension while developing it:
 
 ```bash
-pi -e ./packages/pi-gateway
+pi -e ./pkgs/pi-gateway
 ```
 
 Install it into the active user's Pi settings using an absolute path:
 
 ```bash
-pi install "$PWD/packages/pi-gateway"
+pi install "$PWD/pkgs/pi-gateway"
 ```
 
 To install it only for the current project, add `-l`:
 
 ```bash
-pi install -l "$PWD/packages/pi-gateway"
+pi install -l "$PWD/pkgs/pi-gateway"
 ```
 
 Local path installations reference this checkout directly, so source changes do not need republishing. Extensions in package locations are reloaded according to Pi's package loading behavior.

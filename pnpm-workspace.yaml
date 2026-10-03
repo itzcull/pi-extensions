@@ -1,5 +1,5 @@
 packages:
-  - "packages/*"
+  - "pkgs/*"
 
 blockExoticSubdeps: true
 minimumReleaseAge: 10080
