@@ -1,0 +1,41 @@
+{
+	"name": "@itzcull/pi-usage",
+	"version": "0.1.0",
+	"description": "Subscription quota remaining for Claude and OpenAI Codex in Pi",
+	"keywords": [
+		"pi-package"
+	],
+	"license": "MIT",
+	"files": [
+		"extensions",
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"pack:check": "npm pack --dry-run --ignore-scripts",
+		"check": "pnpm typecheck && pnpm test && pnpm pack:check",
+		"prepublishOnly": "pnpm check"
+	},
+	"devDependencies": {
+		"@types/node": "26.4.0"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"typebox": "*"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"pi": {
+		"extensions": [
+			"./extensions/index.ts"
+		]
+	}
+}
